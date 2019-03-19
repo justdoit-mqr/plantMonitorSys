@@ -1,0 +1,24 @@
+/****************************************************************************
+**
+** Copyright (C)  2016 Aotai Electric Co.,LTD   山东奥太电气有限公司
+** All rights reserved.
+**
+****************************************************************************/
+/*
+ *@file:   messagebox.h
+ *@author: 缪庆瑞
+ *@date:   2017.5.4
+ *@brief:  消息弹出窗,在QMessageBox上封装，方便自由的调整弹出框部件大小及样式
+ */
+#include "messagebox.h"
+
+MyMessageBox::MyMessageBox()
+{
+
+}
+
+MyMessageBox::~MyMessageBox()
+{
+
+}
+

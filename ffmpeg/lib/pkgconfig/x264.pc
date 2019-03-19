@@ -1,0 +1,10 @@
+prefix=/home/qy/3354EK/ffmpeg
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: x264
+Description: H.264 (MPEG4 AVC) encoder library
+Version: 0.115.x
+Libs: -L${exec_prefix}/lib -lx264 -lpthread
+Cflags: -I${prefix}/include
