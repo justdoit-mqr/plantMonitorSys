@@ -19,7 +19,7 @@ NetworkingWidget::NetworkingWidget(QWidget *parent) : QWidget(parent)
     QVBoxLayout *vBoxLayout = new QVBoxLayout(this);
     vBoxLayout->setMargin(1);
     vBoxLayout->addWidget(tabWidget);
-    wifiSwitchSlot();//开启wifi
+    //wifiSwitchSlot();//开启wifi
 }
 
 NetworkingWidget::~NetworkingWidget()
@@ -229,7 +229,13 @@ void NetworkingWidget::initRightPropertyBox()
  */
 void NetworkingWidget::scanWifi()
 {
-    system("wpa_cli scan_result | grep WPA | awk '{print $5> \"./config/wifilist.txt\"}'");//将可连接wifi写入文件
+    //将可连接wifi写入文件
+    if(system("wpa_cli scan_result | grep WPA | awk '{print $5> \"./config/wifilist.txt\"}'"))//执行成功返回0
+    {
+        qDebug()<<"scanWifi failed!!!";
+        MyMessageBox::myInformation(this,tr("Scan Wifi Failed"),tr("请接入无线网卡!!!"));
+        return ;
+    }
     QFile file("./config/wifilist.txt");
     if(file.exists())
     {
@@ -426,7 +432,8 @@ bool NetworkingWidget::eventFilter(QObject *obj, QEvent *event)
         //连接软键盘信号
         connect(softKeyboard,SIGNAL(sendText(QString)),this,SLOT(keyboardSlot(QString)));
         softKeyboard->setInputText(tempEdit->text());
-        softKeyboard->showFullScreen();
+        //softKeyboard->showFullScreen();
+        softKeyboard->show();
     }
     return QWidget::eventFilter(obj,event);
 }

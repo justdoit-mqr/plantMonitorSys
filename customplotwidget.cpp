@@ -6,12 +6,13 @@
  */
 #include "customplotwidget.h"
 #include <QGridLayout>
-#define RTDATACOUNT 26  //qcustomPlot显示实时数据时关联的数据最大组数
+//qcustomPlot显示实时数据时关联的数据最大组数,即横坐标(时间)的刻度范围
+#define RTDATACOUNT 25
 
 CustomPlotWidget::CustomPlotWidget(QWidget *parent) : QWidget(parent)
 {
-    initCustomPlot();
-    initOtherWidget();
+    initCustomPlot();//初始化曲线显示组件QCustomPlot类对象
+    initOtherWidget();//初始化曲线绘制界面的其他控制及显示类部件
     QGridLayout *gridLayout = new QGridLayout(this);
     gridLayout->setContentsMargins(1,1,1,1);
     gridLayout->setSpacing(0);
@@ -44,8 +45,8 @@ CustomPlotWidget::~CustomPlotWidget()
 void CustomPlotWidget::initCustomPlot()
 {
     customPlot = new QCustomPlot(this);
-    // x(下方),y(左侧)轴附加文本显示的
-    //customPlot->xAxis->setLabel(tr("时间"));//太占空间
+    // x(下方),y(左侧)轴附加文本显示  比较占空间,这里选择不显示
+    //customPlot->xAxis->setLabel(tr("时间"));
     //customPlot->yAxis->setLabel(tr("电压(V)"));
     //设置y(右侧)轴显示，默认不显示
     customPlot->yAxis2->setVisible(true);
@@ -167,7 +168,7 @@ void CustomPlotWidget::initHistoryQueryWidget()
     yearBox = new QComboBox(this);
     yearBox->setFont(font);
     yearBox->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Preferred);
-    yearBox->addItem("2017");
+    yearBox->addItem("2019");
     yearBox->view()->verticalScrollBar()->setStyleSheet(scrollBarStyleSheet);
     monthBox = new QComboBox(this);
     monthBox->setFont(font);
@@ -277,13 +278,17 @@ void CustomPlotWidget::initHistoryQueryWidget()
  */
 void CustomPlotWidget::refreshTime()
 {
-    //获取当前时间在一天中的秒数，
-    //double secondsOfDay = QTime::currentTime().msecsSinceStartOfDay()/1000.0;
-    //qt4.8.2 没有msecsSinceStartOfDay方法，使用下面的代替
-    double secondsOfDay = qAbs(QTime::currentTime().secsTo(QTime(0,0,0)));
-    //第一个参数是起始位置，第二个是范围的size
-    customPlot->xAxis->setRange(secondsOfDay-RTDATACOUNT+2,RTDATACOUNT-1,Qt::AlignLeft);
-    customPlot->replot();
+    //仅在界面显示时才刷新,副作用就是刚打开曲线展示界面时数据曲线可能有一个跳动
+    if(this->isVisible())
+    {
+        //获取当前时间在一天中的秒数，
+        //double secondsOfDay = QTime::currentTime().msecsSinceStartOfDay()/1000.0;
+        //qt4.8.2 没有msecsSinceStartOfDay方法，使用下面的代替
+        double secondsOfDay = qAbs(QTime::currentTime().secsTo(QTime(0,0,0)));
+        //第一个参数是起始位置，第二个是范围的size
+        customPlot->xAxis->setRange(secondsOfDay-RTDATACOUNT,RTDATACOUNT,Qt::AlignLeft);
+        customPlot->replot();//刷新显示
+    }
 }
 /*
  *@brief:   调节电压范围的滑动条值改变
@@ -319,13 +324,13 @@ void CustomPlotWidget::realtimeOrHistoryChanged(int id)
     //根据点击的按钮id(0 =历史；1 = 实时)和realtimeFlag实时标记变量比较，实现只对状态改变做响应
     if(realtimeFlag == (bool)id)
     {
-        qDebug()<<"no change:"<<id;
+        //qDebug()<<"no change:"<<id;
         return;
     }
     else//实时/历史 切换
     {
         realtimeFlag = (bool)id;
-        qDebug()<<"button id="<<id;
+        //qDebug()<<"button id="<<id;
         if(id)//实时
         {
             graphing(equipmentNo);
@@ -457,7 +462,7 @@ void CustomPlotWidget::setHashData(QString equipmentNo, QStringList graphDataLis
     }
 }
 /*
- *@brief:   根据当前设备号绘制曲线图
+ *@brief:   根据当前设备号绘制实时曲线图
  *@author:  缪庆瑞
  *@date:    2017.4.11
  *@param:   equipmentNo：设备号(键)
@@ -496,7 +501,7 @@ void CustomPlotWidget::graphing(QString equipmentNo)
     }
 }
 /*
- *@brief:   设置当前的设备号
+ *@brief:   设置当前的设备号，并刷新实时显示
  *@author:  缪庆瑞
  *@date:    2017.4.
  *@param:   equipmentNo：设备号

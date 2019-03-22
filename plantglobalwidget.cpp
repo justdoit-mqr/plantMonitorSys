@@ -70,7 +70,7 @@ PlantGlobalWidget::~PlantGlobalWidget()
 void PlantGlobalWidget::initEquipmentNoBtn()
 {
     //连接数据库
-    if(createConnection("plantManager.db","connection1"))
+    if(createConnection("./database/plantManager.db","connection1"))
     {
         QStringList list;//数据库中所有设备号的链表
         //数据库连接成功，执行查询命令，根据数据库中的信息，初始化界面的设备按钮
@@ -110,9 +110,7 @@ void PlantGlobalWidget::initEquipmentNoBtn()
         emit sendEquipmentNoList(list);//通过信号发送所有的设备号到信息展示界面和信息汇总界面
     }
     addBtnA = new QPushButton(this);
-    //qDebug()<<"sasssssssssssssssssssss1";
     addBtnA->setStyleSheet("border-image: url(:/images/add.png);outline:none;");//目前arm板加载jpg格式的图片有问题，段错误
-    //qDebug()<<"sasssssssssssssssssssss2";
     //addBtnA->setStyleSheet(statusColor.at(0));
     addBtnA->setFixedHeight(BTNHEIGHT-16);
     connect(addBtnA,SIGNAL(clicked()),this,SLOT(addEquipmentASlot()));
@@ -227,8 +225,6 @@ bool PlantGlobalWidget::createConnection(QString databaseName, QString connectio
     {
         qDebug()<<db.lastError();
         MyMessageBox::myCritical(0,tr("无法打开数据库"),tr("不能够建立数据库连接"),20);
-//        QMessageBox::critical(0,"Cannot open database",
-//                              "unable to establish a database connection.",QMessageBox::Cancel);
         return false;
     }
     else

@@ -15,95 +15,41 @@ VideoEncode::~VideoEncode()
 {
 
 }
-//转换yuyv422格式帧为yuv420p，因为保存到视频的原始帧格式为yuv420p
-void VideoEncode::yuyv422_to_yuv420p(AVFrame *dst, const AVFrame *src, int width, int height)
-{
-    const uint8_t *p, *p1;
-    uint8_t *lum, *cr, *cb, *lum1, *cr1, *cb1;
-    int w;
-
-    p1 = src->data[0];
-    lum1 = dst->data[0];
-    cb1 = dst->data[1];
-    cr1 = dst->data[2];
-
-    for(;height >= 1; height -= 2)
-    {
-        p = p1;
-        lum = lum1;
-        cb = cb1;
-        cr = cr1;
-        for(w = width; w >= 2; w -= 2)
-        {
-            lum[0] = p[0];
-            cb[0] = p[1];
-            lum[1] = p[2];
-            cr[0] = p[3];
-            p += 4;
-            lum += 2;
-            cb++;
-            cr++;
-        }
-        if(w)
-        {
-            lum[0] = p[0];
-            cb[0] = p[1];
-            cr[0] = p[3];
-            cb++;
-            cr++;
-        }
-        p1 += src->linesize[0];
-        lum1 += dst->linesize[0];
-        if(height>1)
-        {
-            p = p1;
-            lum = lum1;
-            for(w = width; w >= 2; w -= 2)
-            {
-                lum[0] = p[0];
-                lum[1] = p[2];
-                p += 4;
-                lum += 2;
-            }
-            if(w)
-            {
-                lum[0] = p[0];
-            }
-            p1 += src->linesize[0];
-            lum1 += dst->linesize[0];
-        }
-        cb1 += dst->linesize[1];
-        cr1 += dst->linesize[2];
-    }
-}
-
-uchar *VideoEncode::YUYV422ToYUV420P(uchar *YUV422, uchar *YUV420, int width, int height)
+/*
+ *@brief:   转换yuyv422格式帧为yuv420p　　因为保存到视频的原始帧格式为yuv420p
+ *@author:  网络资源
+ *@date:    2017.5.12
+ *@param:   YUV422:原始数据帧
+ *@param:   YUV420:转换后的数据帧
+ *@param:   width:分辨率宽度
+ *@param:   height: 分辨率高度
+ */
+void VideoEncode::YUYV422ToYUV420P(uchar *YUV422, uchar *YUV420, int width, int height)
 {
     /*下面注释的部分因为动态的申请内存空间而没有释放，加上该函数执行频率比较快(在保存
     视频帧时执行，有采集的帧速率决定),执行一段时间后会出现内存不足，程序退出。经过测试发现
     在每秒25帧也就是每秒执行25次的情况下，大概40秒左右就会出现内存不足现象，所以这里将动态
     申请空间的操作移动到初始化函数(initVideoProcess())中*/
-//    uint8_t *data_srcBuf,*data_dstBuf;
-//    AVFrame *srcBuf = NULL;
-//    AVFrame *dstBuf = NULL;
-//    srcBuf = avcodec_alloc_frame();
-//    dstBuf = avcodec_alloc_frame();
-//    data_srcBuf = (uint8_t *)malloc(320*240*2);
-//    srcBuf->data[0] = data_srcBuf;
+    /*uint8_t *data_srcBuf,*data_dstBuf;
+    AVFrame *srcBuf = NULL;
+    AVFrame *dstBuf = NULL;
+    srcBuf = avcodec_alloc_frame();
+    dstBuf = avcodec_alloc_frame();
+    data_srcBuf = (uint8_t *)malloc(320*240*2);
+    srcBuf->data[0] = data_srcBuf;*/
     memcpy(srcBuf->data[0],YUV422,320*240*2);
     srcBuf->linesize[0] = width*2;
 
-//    data_dstBuf = (uint8_t *)malloc((320*240*3)/2);
-//    dstBuf->data[0] = data_dstBuf;
-//    dstBuf->data[1] = dstBuf->data[0]+320*240;
-//    dstBuf->data[2] = dstBuf->data[1]+320*240/4;
+    /*data_dstBuf = (uint8_t *)malloc((320*240*3)/2);
+    dstBuf->data[0] = data_dstBuf;
+    dstBuf->data[1] = dstBuf->data[0]+320*240;
+    dstBuf->data[2] = dstBuf->data[1]+320*240/4;*/
     dstBuf->linesize[0] = width;
     dstBuf->linesize[1] = width/2;
     dstBuf->linesize[2] = width/2;
 
-    yuyv422_to_yuv420p(dstBuf,srcBuf,width,height);
+    yuyv422_to_yuv420p(dstBuf,srcBuf,width,height);//完成原始帧到目标格式帧的转换
     YUV420 = (uchar *)dstBuf->data[0];
-    return YUV420;
 }
 /*
  *@brief:   初始化保存视频前的相关处理
@@ -122,7 +68,7 @@ void VideoEncode::initVideoProcess(QByteArray filename)
     //根据文件名后缀猜应该用什么编码，找不到对应后缀的编码方式返回NULL
     if(!(outputFormat = guess_format(NULL,outFilename,NULL)))
     {
-        printf("No SD card found,please insert SD card.");
+        printf("The video format cannot be encoded.");
         exit(1);
     }
     formatContext = avformat_alloc_context();//申请空间返回指针
@@ -228,10 +174,16 @@ void VideoEncode::initVideoProcess(QByteArray filename)
     dstBuf->data[1] = dstBuf->data[0]+320*240;
     dstBuf->data[2] = dstBuf->data[1]+320*240/4;
 }
+/*
+ *@brief:   编码保存视频帧
+ *@author:  缪庆瑞
+ *@date:    2017.5.12
+ *@param:   YUV420:视频帧的内存地址
+ */
 void VideoEncode::videoProcess(uchar *YUV420)
 {
     AVPacket pkt;//存储压缩编码数据信息
-    pixelSize = codecContext->width*codecContext->height;
+    int pixelSize = codecContext->width*codecContext->height;
     rawFrame_buf = YUV420;
     rawFrame->data[0] = rawFrame_buf;//y
     rawFrame->data[1] = rawFrame_buf+pixelSize;//u
@@ -253,7 +205,7 @@ void VideoEncode::videoProcess(uchar *YUV420)
     {
         //printf("Not RawPicture.................\n");
         //将原始帧按照指定的格式输出到输出缓冲区，返回值为帧的实际大小
-        real_outbuf_size = avcodec_encode_video(codecContext,video_outbuf,video_outbuf_size,rawFrame);
+        int real_outbuf_size = avcodec_encode_video(codecContext,video_outbuf,video_outbuf_size,rawFrame);
         if(real_outbuf_size > 0)
         {
             av_init_packet(&pkt);
@@ -271,7 +223,11 @@ void VideoEncode::videoProcess(uchar *YUV420)
         }
     }
 }
-
+/*
+ *@brief:   结束视频保存处理
+ *@author:  缪庆瑞
+ *@date:    2017.5.12
+ */
 void VideoEncode::finishVideoProcess()
 {
     //写文件尾，不写会导致文件不完整，可能无法播放且无法获取属性(时长/帧率等)信息
@@ -287,4 +243,73 @@ void VideoEncode::finishVideoProcess()
 
     av_free(srcBuf);
     av_free(dstBuf);
+}
+/*
+ *@brief:   转换yuyv422格式帧为yuv420p　　因为保存到视频的原始帧格式为yuv420p
+ *@author:  网络资源
+ *@date:    2017.5.12
+ *@param:   dst:目标格式帧(yuv420p)
+ *@param:   src:原始格式帧(yuyv422)
+ *@param:   width:分辨率宽度
+ *@param:   height: 分辨率高度
+ */
+void VideoEncode::yuyv422_to_yuv420p(AVFrame *dst, const AVFrame *src, int width, int height)
+{
+    const uint8_t *p, *p1;
+    uint8_t *lum, *cr, *cb, *lum1, *cr1, *cb1;
+    int w;
+
+    p1 = src->data[0];
+    lum1 = dst->data[0];
+    cb1 = dst->data[1];
+    cr1 = dst->data[2];
+
+    for(;height >= 1; height -= 2)
+    {
+        p = p1;
+        lum = lum1;
+        cb = cb1;
+        cr = cr1;
+        for(w = width; w >= 2; w -= 2)
+        {
+            lum[0] = p[0];
+            cb[0] = p[1];
+            lum[1] = p[2];
+            cr[0] = p[3];
+            p += 4;
+            lum += 2;
+            cb++;
+            cr++;
+        }
+        if(w)
+        {
+            lum[0] = p[0];
+            cb[0] = p[1];
+            cr[0] = p[3];
+            cb++;
+            cr++;
+        }
+        p1 += src->linesize[0];
+        lum1 += dst->linesize[0];
+        if(height>1)
+        {
+            p = p1;
+            lum = lum1;
+            for(w = width; w >= 2; w -= 2)
+            {
+                lum[0] = p[0];
+                lum[1] = p[2];
+                p += 4;
+                lum += 2;
+            }
+            if(w)
+            {
+                lum[0] = p[0];
+            }
+            p1 += src->linesize[0];
+            lum1 += dst->linesize[0];
+        }
+        cb1 += dst->linesize[1];
+        cr1 += dst->linesize[2];
+    }
 }

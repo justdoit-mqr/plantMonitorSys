@@ -156,7 +156,7 @@ void InfoCollectWidget::initWarningBox()
     dateLable->setSizePolicy(QSizePolicy::Fixed,QSizePolicy::Preferred);
     yearBox = new QComboBox(this);
     yearBox->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Preferred);
-    yearBox->addItem("2017");
+    yearBox->addItem("2019");
     yearBox->view()->verticalScrollBar()->setStyleSheet(scrollBarStyleSheet);
     monthBox = new QComboBox(this);
     monthBox->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Preferred);
@@ -214,7 +214,8 @@ void InfoCollectWidget::initWarningBox()
     warningTableWidget->setHorizontalHeaderLabels(columnNames);
     warningTableWidget->horizontalHeader()->setFixedHeight(35);//设置水平表头固定高度，避免字体过大显不全
     //warningTableWidget->horizontalHeader()->setDragDropMode(QAbstractItemView::NoDragDrop);//设置表头不可拖动  单用这一句没用
-    warningTableWidget->horizontalHeader()->setResizeMode(QHeaderView::Fixed);//设置水平表头不可调整大小，同样不可拖动
+    //warningTableWidget->horizontalHeader()->setResizeMode(QHeaderView::Fixed);//设置水平表头不可调整大小，同样不可拖动
+    warningTableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);//Qt5 取代setResizeMode
     warningTableWidget->verticalHeader()->setVisible(false);//垂直表头不显示
     warningTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);//设置表格不可编辑
     warningTableWidget->setSelectionMode(QAbstractItemView::NoSelection);//设置单元格不可选中
@@ -314,9 +315,7 @@ void InfoCollectWidget::refreshRunTimesSlot()
     if(!query1.exec(QString("select count(Ecurrent) from '%1' where Edate='%2' and Ecurrent<=10")
                   .arg(tableName).arg(date)))
     {
-        //qDebug()<<"select Ecurrent failed..."<<query1.lastError();
         MyMessageBox::myInformation(this,"Information",tr("该设备无任何数据记录"),20);
-        //QMessageBox::information(this,"Info",tr("该设备无任何数据记录"));
         return;
     }
     //测试发现sqlite数据库不支持获取querysize的信息调用query.size()返回负1

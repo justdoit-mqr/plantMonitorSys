@@ -257,14 +257,21 @@ void EquipmentInfoThread::receiveMessage()
         HDLCToData(encipheredData);
         int checkSum=0;//校验和
         int num=encipheredData.size();//处理后数据的长度
+        /* 注意QByteArray的at()方法返回的是有符号char类型,最好在执行加法运算之前
+         * 转换成无符号char。不然如果发送方采用无符号类型计算校验和，而接收方采用
+         * 有符号类型计算校验和，两者最终求的checkSum的原码值(int 类型)会不一样。但
+         * 由于计算机采用补码进行加减运算，两者求的checkSum的补码的低8位是相同的。
+         * 所以这里不转成quint8也不会出错，只是转换成无符号计算更容易理解
+         */
         for(int j=1;j<num-2;j++)
         {
-            checkSum+=encipheredData.at(j);//对接收的数据计算校验和
+            checkSum+=(quint8)encipheredData.at(j);//对接收的数据计算校验和
         }
-        /*如果校验和正确，控制命令为回复数据命令，则将数据处理后显示
-        因为字节数组中的元素默认为一字节的有符号char，最高位为1时则为负值，
-        而int型的校验和为正值，故需要转换成unsigned char*/
-        if((checkSum&0xff)==(quint8)encipheredData.at(num-2)&&encipheredData.at(2)==0x02)
+        /* 如果校验和正确，控制命令为回复数据命令，则将数据处理后显示
+         * 因为at()方法默认返回有符号char，最高位为1时则为负值，而int型的校验和
+         * 取低8位为正值，故需要转换成unsigned char
+         */
+        if((quint8)(checkSum&0xff)==(quint8)encipheredData.at(num-2)&&encipheredData.at(2)==0x02)
         {
             /*客户端发送的数据经过HDLC协议的封装，具体格式如下：
              包头+地址字段+控制字段+客户端ip字段+电压+电流+日期(年+月+日+时+分+秒)+包尾
@@ -284,7 +291,7 @@ void EquipmentInfoThread::receiveMessage()
             emit equipmentDataSignal(list);//将设备信息以信号的形式发出去
         }
         //update 2017.6.1 时间校准
-        else if((checkSum&0xff)==(quint8)encipheredData.at(num-2)&&encipheredData.at(2)==0x03)
+        else if((quint8)(checkSum&0xff)==(quint8)encipheredData.at(num-2)&&encipheredData.at(2)==0x03)
         {
             /*客户端发送的数据经过HDLC协议的封装，具体格式如下：
              包头+地址字段+控制字段+日期(年+月+日+时+分+秒)+包尾

@@ -1,4 +1,4 @@
-//videocapture.h
+/*视频采集捕获处理类*/
 #ifndef VIDEOCAPTURE_H
 #define VIDEOCAPTURE_H
 
@@ -21,9 +21,15 @@
 #include <QDateTime>
 #include <QMutex>//用于线程的互斥锁
 #include <QMutexLocker>
+
+#ifdef VIDEO_ENCODE_SAVE
 /*该头文件用于视频保存操作，只需要实时显示不保存文件的话就不需要，因为视频保存操作
  涉及帧的编码操作，需要一些库的支持*/
 #include "videoencode.h"
+#endif
+
+#define IMAGEWIDTH (320)
+#define IMAGEHEIGHT (240)
 
 #define BUFFERCOUNT (3)//缓冲区的数量，视频帧按队列顺序刷新，太多的话可能会造成视频有延迟
 typedef unsigned int uint;
@@ -53,18 +59,16 @@ public:
     int convert_yuv_to_rgb_pixel(int y,int u,int v);
     void convert_yuv_to_rgb_buffer(uchar *yuv,uchar *rgb,uint width,uint height);
 
-    //视频保存相关函数
-//    void startRecord();
-//    void stopRecord();
-
     bool unMmap;//表示是否需要主线程卸载内存映射
 
 public slots:
-    void getAndSaveFrame();
-    //void getFrame(void *rgbFrameAddr);
+#ifdef VIDEO_ENCODE_SAVE
     //视频保存相关函数
+    void getAndSaveFrame();
     void startRecord();
     void stopRecord();
+#endif
+
     void hotplugSlot();
 
 private:
@@ -83,14 +87,13 @@ private:
     QTimer *hotplugTimer;//定时获取采集设备的状态，实现热插拔
     bool videoEqmExist;//标记设备是否存在
     char videoEqmName[30];//视频设备文件名称及路径
-
+#ifdef VIDEO_ENCODE_SAVE
     //视频保存
     VideoEncode *videoEncode;//视频编码操作保存文件的对象
     QTimer *timer;//定时编码保存视频帧
-    void *yuv422Frame;
-    uchar *yuv420;
-    uchar *yuv420Temp;
+#endif
 
+    void *yuv422Frame;
     QMutex mutex;
 };
 #endif //VIDEOCAPTURE_H

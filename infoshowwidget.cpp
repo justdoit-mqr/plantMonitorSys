@@ -275,7 +275,8 @@ bool InfoShowWidget::eventFilter(QObject *obj, QEvent *event)
             //连接软键盘信号
             connect(softKeyboard,SIGNAL(sendText(QString)),this,SLOT(keyboardSlot(QString)));
             softKeyboard->setInputText(tempEdit->text());
-            softKeyboard->showFullScreen();
+            //softKeyboard->showFullScreen();
+            softKeyboard->show();
         }
     }
     return QWidget::eventFilter(obj,event);
@@ -290,11 +291,9 @@ void InfoShowWidget::updateEquipmentNoBox(QStringList equipmentNoList)
 {
     /*因为combobox的clear操作完成后会发送currentIndexChanged(QString)信号，参数为空串""，在槽函数中没有
     判断，引起链表超出范围异常，所以在clear操作之前，断开信号与槽，之后在连接*/
-    //qDebug()<<"test11111111"<<equipmentNoList;
     disconnect(equipmentNoBox,SIGNAL(currentIndexChanged(QString)),this,SLOT(refreshDisplay(QString)));
     equipmentNoBox->clear();
     connect(equipmentNoBox,SIGNAL(currentIndexChanged(QString)),this,SLOT(refreshDisplay(QString)));
-    //qDebug()<<"test11111112";
     equipmentNoBox->addItems(equipmentNoList);
     equipmentInfoHash.clear();//改变设备号的个数后，需要重新更新hash表
     QStringList list;//哈希表设备号(键)对应的值(初始化为离线状态)
@@ -305,7 +304,7 @@ void InfoShowWidget::updateEquipmentNoBox(QStringList equipmentNoList)
     }
 }
 /*
- *@brief:   根据信号设置hash表键值对，
+ *@brief:   根据信号设置hash表键值对
  *@author:  缪庆瑞
  *@date:    2017.4.1
  *@param:   equipmentNo:表示对应的设备(键)

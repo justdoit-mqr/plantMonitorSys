@@ -29,37 +29,38 @@ class VideoEncode : public QObject
 public:
     explicit VideoEncode(QObject *parent = 0);
     ~VideoEncode();
-
     //转换yuyv422格式帧为yuv420p
-    void yuyv422_to_yuv420p(AVFrame *dst, const AVFrame *src,int width, int height);
-    uchar *YUYV422ToYUV420P(uchar *YUV422, uchar *YUV420, int width, int height);
-    void initVideoProcess(QByteArray filename);//初始化保存视频的相关处理
+    void YUYV422ToYUV420P(uchar *YUV422, uchar *YUV420, int width, int height);
+    //初始化保存视频的相关处理
+    void initVideoProcess(QByteArray filename);
     //编码保存视频帧
     void videoProcess(uchar *YUV420);
     //结束视频保存
     void finishVideoProcess();
+
+private:
+    //转换yuyv422格式帧为yuv420p 　该函数仅供YUYV422ToYUV420P()内部调用
+    void yuyv422_to_yuv420p(AVFrame *dst, const AVFrame *src,int width, int height);
 
 signals:
 
 public slots:
 
 private:
-    //uchar *YUV420;
     AVCodecContext *codecContext;//描述编解码器上下文
     AVFormatContext *formatContext;//解封装
     AVStream *stream;//存储视频流信息
     AVFrame *rawFrame;//存储原始数据信息
+
     uchar *rawFrame_buf;//原始帧内存地址
     uchar *video_outbuf;//转换格式后的原始帧的输出缓冲区
     int video_outbuf_size;//申请的输出缓冲区空间大小
-    int real_outbuf_size;//转换格式后实际原始帧大小
-    int pixelSize;
-    //double video_pts;//时间戳
+
     //YUYV422ToYUV420P()转换函数中的变量
     uint8_t *data_srcBuf;//原yuyv422数据帧内存地址
     uint8_t *data_dstBuf;//转换后的yuv420p数据帧内存地址
-    AVFrame *srcBuf ;//视频帧，除了包含采集的数据帧(data_srcBuf)还有其他信息
-    AVFrame *dstBuf;
+    AVFrame *srcBuf ;//原视频帧，除了包含采集的数据帧(data_srcBuf)还有其他信息
+    AVFrame *dstBuf;//转换后的视频帧
 
 };
 

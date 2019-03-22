@@ -1,18 +1,15 @@
-/*videocapture.cpp*/
-/*视频捕获文件*/
-#define IMAGEWIDTH (320)
-#define IMAGEHEIGHT (240)
-
+/*视频采集捕获处理类*/
 #include "videocapture.h"
 VideoCapture::VideoCapture():QObject()
 {
+#ifdef VIDEO_ENCODE_SAVE
     /*视频编码保存相关的库初始化,放在初始化函数中，如果放在类外调用函数中，
     那么该对象就不在次线程中运行了*/
    videoEncode = new VideoEncode(this);
    timer = new QTimer(this);
    connect(timer,SIGNAL(timeout()),this,SLOT(getAndSaveFrame()));
+#endif
    yuv422Frame = NULL;
-
    fd = -1;
    unMmap = false;
    strcpy(videoEqmName,"/dev/video0");
@@ -178,6 +175,44 @@ void VideoCapture::convert_yuv_to_rgb_buffer(uchar *yuv, uchar *rgb, uint width,
         rgb[out++] = pixel_24[2];
     }
 }
+#ifdef VIDEO_ENCODE_SAVE
+/*
+ *@brief:   获取并编码保存视频帧
+ *@author:  缪庆瑞
+ *@date:    2017.5.12
+ */
+void VideoCapture::getAndSaveFrame()
+{
+    qDebug()<<"start:"<<QTime::currentTime().toString("hh:mm:ss:zzz");
+    //先获取
+    v4l2_buffer buf;
+    memset(&buf,0,sizeof(buf));
+
+    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buf.memory = V4L2_MEMORY_MMAP;
+
+    int dqbuf = ioctl(fd,VIDIOC_DQBUF,&buf);//从视频输出队列取出一个缓冲帧
+    if(dqbuf == -1)
+    {
+        printf("dqbuf failed.\n");
+        //exit(-1);
+        return ;//当视频输出队列暂没有缓冲帧时，直接返回函数等待下一次，而不是直接退出
+    }
+    {
+        QMutexLocker locker(&mutex);
+        yuv422Frame = bufPtr[buf.index].addr;//取出的yuv422格式帧的地址
+    }
+    index = buf.index;
+    uchar *yuv420;
+    videoEncode->YUYV422ToYUV420P((uchar *)yuv422Frame,yuv420,IMAGEWIDTH,IMAGEHEIGHT);
+    videoEncode->videoProcess(yuv420);
+    {
+        //对下面的操作加锁，避免在主线程操作yuv422Frame时，次线程对该地址写入新数据造成屏幕混乱
+        QMutexLocker locker(&mutex);
+        unGetFrame();/*将一个空的缓冲帧重新放入队列*/
+    }
+    //qDebug()<<"stop:"<<QTime::currentTime().toString("hh:mm:ss:zzz");
+}
 /*
  *@brief:   开始录制视频，保存到文件
  *@author:  缪庆瑞
@@ -209,6 +244,7 @@ void VideoCapture::stopRecord()
     timer->stop();
     videoEncode->finishVideoProcess();
 }
+#endif
 /*
  *@brief:   定时查询视频采集设备的状态
  *@author:  缪庆瑞
@@ -232,42 +268,6 @@ void VideoCapture::hotplugSlot()
     {
         videoEqmExist = true;
     }
-}
-/*
- *@brief:   获取并编码保存视频帧
- *@author:  缪庆瑞
- *@date:    2017.5.12
- */
-void VideoCapture::getAndSaveFrame()
-{
-    qDebug()<<"start:"<<QTime::currentTime().toString("hh:mm:ss:zzz");
-    //先获取
-    v4l2_buffer buf;
-    memset(&buf,0,sizeof(buf));
-
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    buf.memory = V4L2_MEMORY_MMAP;
-
-    int dqbuf = ioctl(fd,VIDIOC_DQBUF,&buf);//从视频输出队列取出一个缓冲帧
-    if(dqbuf == -1)
-    {
-        printf("dqbuf failed.\n");
-        //exit(-1);
-        return ;//当视频输出队列暂没有缓冲帧时，直接返回函数等待下一次，而不是直接退出
-    }
-    {
-        QMutexLocker locker(&mutex);
-        yuv422Frame = bufPtr[buf.index].addr;//取出的yuv422格式帧的地址
-    }
-    index = buf.index;
-    yuv420Temp = videoEncode->YUYV422ToYUV420P((uchar *)yuv422Frame,yuv420,IMAGEWIDTH,IMAGEHEIGHT);
-    videoEncode->videoProcess(yuv420Temp);
-    {
-        //对下面的操作加锁，避免在主线程操作yuv422Frame时，次线程对该地址写入新数据造成屏幕混乱
-        QMutexLocker locker(&mutex);
-        unGetFrame();/*将一个空的缓冲帧重新放入队列*/
-    }
-    //qDebug()<<"stop:"<<QTime::currentTime().toString("hh:mm:ss:zzz");
 }
 /*初始化设备*/
 void VideoCapture::initDevice()

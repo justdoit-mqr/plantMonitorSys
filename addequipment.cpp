@@ -208,7 +208,8 @@ bool AddEquipment::eventFilter(QObject *obj, QEvent *event)
         //连接软键盘信号
         connect(softKeyboard,SIGNAL(sendText(QString)),this,SLOT(keyboardSlot(QString)));
         softKeyboard->setInputText(tempEdit->text());
-        softKeyboard->showFullScreen();
+        //softKeyboard->showFullScreen();
+        softKeyboard->show();
     }
     return QDialog::eventFilter(obj,event);
 }

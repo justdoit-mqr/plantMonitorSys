@@ -10,10 +10,9 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
 TARGET = plantMonitorSys
 TEMPLATE = app
-LIBS += -L./ffmpeg/lib -lavcodec
-LIBS += -L./ffmpeg/lib -lavformat
-LIBS += -L./ffmpeg/lib -lavutil
-LIBS += -L./ffmpeg/lib -lx264
+
+#DEFINES += VIDEO_CAPTURE #视频采集功能开启,使用linux的v4l2采集
+#DEFINES += VIDEO_ENCODE_SAVE #视频编码保存功能开启,需要特定平台的库,并开启视频采集功能
 
 SOURCES += main.cpp\
         mainwidget.cpp \
@@ -29,8 +28,6 @@ SOURCES += main.cpp\
     mymessagebox.cpp \
     softkeyboard/softkeyboard.cpp \
     videomonitorwidget.cpp \
-    videocapture.cpp \
-    videoencode.cpp \
     networkingwidget.cpp \
     wificonndialog.cpp
 
@@ -48,10 +45,25 @@ HEADERS  += mainwidget.h \
     softkeyboard/softkeyboard.h \
     globalvar.h \
     videomonitorwidget.h \
-    videocapture.h \
-    videoencode.h \
     networkingwidget.h \
     wificonndialog.h
 
 RESOURCES += \
     images.qrc
+
+#视频采集功能相关文件
+if(contains(DEFINES,VIDEO_CAPTURE)){
+HEADERS  += videocapture.h
+SOURCES += videocapture.cpp
+}
+
+#视频编码保存功能相关文件
+if(contains(DEFINES,VIDEO_ENCODE_SAVE)){
+HEADERS  += videoencode.h
+SOURCES += videoencode.cpp
+
+LIBS += -L./ffmpeg/lib -lavcodec
+LIBS += -L./ffmpeg/lib -lavformat
+LIBS += -L./ffmpeg/lib -lavutil
+LIBS += -L./ffmpeg/lib -lx264
+}

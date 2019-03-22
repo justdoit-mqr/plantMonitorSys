@@ -5,32 +5,33 @@
  *@brief:  显示实时监控视频的类，该类主要调用VideoCapture类的方法完成视频帧的采集，然后
  * 对采集到的帧格式处理成图片显示。
  */
-
 #include "videomonitorwidget.h"
 #include <QGridLayout>
 #include <QTime>
 
-#define IMAGEWIDTH (320)
-#define IMAGEHEIGHT (240)
 #define IMAGEFORMAT QImage::Format_RGB888
 
 VideoMonitorWidget::VideoMonitorWidget(QWidget *parent) : QWidget(parent)
 {
+#ifdef VIDEO_CAPTURE
     videoCapture = new VideoCapture();//视频采集对象
     threadB = new QThread();//视频采集保存单开一个线程
     videoCapture->moveToThread(threadB);//通过该操作将videoCapture对象的操作放在了子线程中
     //qDebug()<<"sub thread:"<<videoCapture->thread();
+#ifdef VIDEO_ENCODE_SAVE
     connect(this,SIGNAL(startRecordSignal()),videoCapture,SLOT(startRecord()));
     connect(this,SIGNAL(stopRecordSignal()),videoCapture,SLOT(stopRecord()));
+#endif
     threadB->start();
     initStatus = false;//视频设备初始化状态
 
     rgbFrame = (uchar *)malloc(IMAGEWIDTH*IMAGEHEIGHT*3*sizeof(char));//为图像分配内存空间
     image = new QImage(rgbFrame,IMAGEWIDTH,IMAGEHEIGHT,IMAGEFORMAT);//根据内存空间创建图像
 
-    timer = new QTimer(this);
+    timer = new QTimer(this);//定时获取视频帧
     connect(timer,SIGNAL(timeout()),this,SLOT(getFrameSlot()));
     timer->start(100);
+#endif
 
     videoOutput = new QLabel();//展示视频画面
     videoOutput->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Preferred);
@@ -42,6 +43,7 @@ VideoMonitorWidget::VideoMonitorWidget(QWidget *parent) : QWidget(parent)
     startRecordVideoBtn = new QPushButton(tr("开始录制"),this);
     startRecordVideoBtn->setStyleSheet(styleSheetString);
     startRecordVideoBtn->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Preferred);
+    startRecordVideoBtn->setEnabled(false);
     connect(startRecordVideoBtn,SIGNAL(clicked()),this,SLOT(startRecordSlot()));
     stopRecordVideoBtn = new QPushButton(tr("结束录制"),this);
     stopRecordVideoBtn->setStyleSheet(styleSheetString);
@@ -58,18 +60,21 @@ VideoMonitorWidget::VideoMonitorWidget(QWidget *parent) : QWidget(parent)
 
 VideoMonitorWidget::~VideoMonitorWidget()
 {
+#ifdef VIDEO_CAPTURE
     threadB->quit();
     threadB->deleteLater();
     videoCapture->deleteLater();
+#endif
 }
 /*
- *@brief:   绘图事件处理函数，用来自动刷新视频帧
+ *@brief:   绘图事件处理函数，这里用来对视频采集设备进行初始化
  *@author:  缪庆瑞
  *@date:    2017.5.10
  *@param:   event：绘图事件
  */
 void VideoMonitorWidget::paintEvent(QPaintEvent *event)
 {
+#ifdef VIDEO_CAPTURE
     //qDebug()<<"paintevent"<<QTime::currentTime().toString("hh:mm:ss:zzz");
     //判断视频设备是否存在，每次设备被拔出后下次需要重新初始化设备
     if(!videoCapture->getVideoEqmExistStatus())
@@ -98,10 +103,11 @@ void VideoMonitorWidget::paintEvent(QPaintEvent *event)
             stopRecordVideoBtn->setEnabled(false);
         }
     }
-//    videoCapture->getFrame((void *)rgbFrame);//获取一帧RGB格式图片流
-//    image->loadFromData((uchar *)rgbFrame,IMAGEWIDTH*IMAGEHEIGHT*3*sizeof(char));//rgb格式图片流生成QImage图片
-//    videoOutput->setPixmap(QPixmap::fromImage(*image));//屏幕显示
-    //videoCapture->unGetFrame();//处理完一帧后，将一个空缓冲区放入队列(实现循环队列)，避免缓冲区被取完
+#else
+    videoOutput->setText(tr("视频采集\n功能已禁用!!"));
+    startRecordVideoBtn->setEnabled(false);
+    stopRecordVideoBtn->setEnabled(false);
+#endif
     QWidget::paintEvent(event);
 }
 /*
@@ -112,7 +118,7 @@ void VideoMonitorWidget::paintEvent(QPaintEvent *event)
  */
 void VideoMonitorWidget::startRecordSlot()
 {
-    QDir dir("/mnt/mtd/video");//视频的保存路径，实际使用网络挂载
+    QDir dir("/mnt/mtd/video");//视频的保存路径，这里使用网络挂载
     //system("umount /mnt/mtd");//先卸载挂载
     if(system("ping 192.168.43.112 -w 2"))//测试网络是否通，-w 2表示两秒后自动退出，通返回０
     {
@@ -150,7 +156,12 @@ void VideoMonitorWidget::stopRecordSlot()
     //videoCapture->stopRecord();
     emit stopRecordSignal();
 }
-
+#ifdef VIDEO_CAPTURE
+/*
+ *@brief:   获取采集的视频帧
+ *@author:  缪庆瑞
+ *@date:    2017.5.12
+ */
 void VideoMonitorWidget::getFrameSlot()
 {
     //qDebug()<<"getFrame:"<<QTime::currentTime().toString("hh:mm:ss:zzz");
@@ -159,7 +170,9 @@ void VideoMonitorWidget::getFrameSlot()
         videoCapture->getFrame((void *)rgbFrame);//获取一帧RGB格式图片流
         image->loadFromData((uchar *)rgbFrame,IMAGEWIDTH*IMAGEHEIGHT*3*sizeof(char));//rgb格式图片流生成QImage图片
         videoOutput->setPixmap(QPixmap::fromImage(*image));//屏幕显示
+        update();//刷新显示
     }
-    update();
-    //repaint();//立即刷新界面
+    //刷新显示放在if条件之外可以不断的执行paintEvent()，自动的探测采集设备的插拔状态
+    //update();
 }
+#endif

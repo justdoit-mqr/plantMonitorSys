@@ -10,7 +10,7 @@
 #include <QGridLayout>
 #include <QBoxLayout>
 #include <QDebug>
-//声明全局变量,因为是Qt类，无法在为全局对象申请空间，但至少要声明一次
+//声明全局变量,因为是Qt类，无法再为全局对象申请空间，但至少要声明一次
 SoftKeyboard *softKeyboard;
 
 MainWidget::MainWidget(QWidget *parent)
@@ -20,7 +20,7 @@ MainWidget::MainWidget(QWidget *parent)
     //初始化标题label
     titleLabel = new QLabel(this);
     titleLabel->setText(tr("车间设备监测与控制系统"));
-    titleLabel->setFixedHeight(42);//固定高度，不然因为timeBtn样式的原因，
+    titleLabel->setFixedHeight(42);//固定高度
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setFont(QFont("msyh",26));
     titleLabel->setFocus();//焦点设置在标题上
@@ -28,7 +28,7 @@ MainWidget::MainWidget(QWidget *parent)
     //初始化时间按钮
     timeBtn = new QPushButton(this);
     connect(timeBtn,SIGNAL(clicked()),this,SLOT(shotScreen()));
-    //timeBtn->setEnabled(false);//暂时不可点击
+    timeBtn->setEnabled(false);//需要截图时再设置使能
     timeBtn->setFlat(true);//无边界
     timeBtn->setFont(QFont("msyh",18));
     timeBtn->setStyleSheet("padding: -1px;border: -1px;");//消除边框及虚线框
@@ -136,6 +136,8 @@ void MainWidget::shotScreen()
     QPixmap savePix = QPixmap::grabWindow(QApplication::desktop()->winId());
     //当前日期时间
     QString dateTimeStr = QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss");
+    /*这里的路径主要针对linux系统平台，如果在windows平台运行，‘/’对应程序所在
+     * 磁盘的根目录*/
     QString dirStr = "/mnt/works/images/";
     QDir dir(dirStr);
     if(!dir.exists())//目录不存在则创建目录
