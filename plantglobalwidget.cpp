@@ -6,6 +6,7 @@
  */
 #define BTNWIDTH 88
 #define BTNHEIGHT 65
+#define DATABASE_NAME "./database/plantManager.db"
 #include "plantglobalwidget.h"
 #include <QGridLayout>
 #include <QStyleFactory>
@@ -70,7 +71,7 @@ PlantGlobalWidget::~PlantGlobalWidget()
 void PlantGlobalWidget::initEquipmentNoBtn()
 {
     //连接数据库
-    if(createConnection("./database/plantManager.db","connection1"))
+    if(createConnection(DATABASE_NAME,"connection1"))
     {
         QStringList list;//数据库中所有设备号的链表
         //数据库连接成功，执行查询命令，根据数据库中的信息，初始化界面的设备按钮
